@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>語彙×絵文字 マッチゲーム – Prototype</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <div class="wrap">
+    <div class="stage-wrap">
+      <div class="toolbar">
+        <button id="startBtn">Start</button>
+        <button id="pauseBtn" class="secondary">Pause</button>
+        <button id="resetBtn" class="secondary">Reset</button>
+      </div>
+      <div class="stage" id="stage">
+        <div class="flash" id="flash">+5 Combo!</div>
+      </div>
+      <div class="targetbar" id="targetBar">
+        <span class="target-label">今の語彙：</span>
+        <span class="target-word" id="targetWord">—</span>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="panel">
+        <div class="score" id="score">0</div>
+        <div class="sub">Score（正解 +10 ＋ 連続ボーナス）</div>
+        <div style="margin-top:8px;">
+          <span class="sub">連続ボーナス：</span>
+          <span class="combo" id="combo">+0</span>
+        </div>
+        <div style="margin-top:4px;">
+          <span class="sub">ストーン：</span>
+          <span id="stoneCount">0</span>
+        </div>
+      </div>
+      <div class="panel">
+        <div style="font-weight:700; margin-bottom:8px;">間違えた絵文字</div>
+        <div class="miss-list" id="missList"></div>
+      </div>
+      <div class="panel">
+        <div style="font-weight:700; margin-bottom:6px;">遊び方</div>
+        <div class="sub" style="line-height:1.6">
+          画面上から流れる絵文字の中から、<b>下の語彙</b>に合う絵文字をタップ/クリック！<br>
+          正解: <b>+10</b> ＋ 連続<b>+1</b>ずつ上昇。<br>
+          間違えると連続ボーナスはリセット。<br>
+          絵文字が底に着くと<b>🪨ストーン化</b>して積み上がるよ。<br>
+          スコア<b>100</b>ごとにストーンを<b>1個除去</b>。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 読み込み順に注意：データ → ユーティリティ → 本体 → テスト -->
+  <script src="./js/data.js"></script>
+  <script src="./js/utils.js"></script>
+  <script src="./js/game.js"></script>
+  <script src="./js/tests.js"></script>
+</body>
+</html>
