@@ -7,6 +7,20 @@
   <link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
+  <!-- Game Clear Banner -->
+<div id="gcBanner" class="banner" style="display:none;">
+  <div class="b-title">GAME CLEAR!</div>
+  <div class="b-sub">You reached <b>Score 1000</b>. Great job!</div>
+  <button id="gcReset">Play Again</button>
+</div>
+
+<!-- Game Over Banner -->
+<div id="goBanner" class="banner" style="display:none;">
+  <div class="b-title">GAME OVER</div>
+  <div class="b-sub">Stones reached the top.</div>
+  <button id="goReset">Retry</button>
+</div>
+
   <div class="wrap">
     <div class="stage-wrap">
       <div class="toolbar">
@@ -60,3 +74,4 @@
   <script src="./js/tests.js"></script>
 </body>
 </html>
+
