@@ -75,23 +75,18 @@ defineBlock('02.state', () => {
 
 /*** [03.targets-levels] ターゲット選定／表示／レベル **************************/
 defineBlock('03.targets-levels', () => {
-  // 現在レベル（1〜4）
   G.level = 1;
 
-  // ★ Lv2以降で使う数字語彙（いち〜きゅう）
   const EXTRA_LEVEL2_ITEMS = [
     { w: "いち",  e: "1️⃣" }, { w: "に",   e: "2️⃣" }, { w: "さん", e: "3️⃣" },
     { w: "よん", e: "4️⃣" }, { w: "ご",   e: "5️⃣" }, { w: "ろく", e: "6️⃣" },
     { w: "なな", e: "7️⃣" }, { w: "はち", e: "8️⃣" }, { w: "きゅう", e: "9️⃣" }
   ];
 
-  // ★ レベルに応じた語彙プール（ダミー生成もこちらを使う）
   G.getPool = function(){
-    // Lv2以降は数字も混ぜる
     return (G.level >= 2) ? [...ALL_ITEMS, ...EXTRA_LEVEL2_ITEMS] : [...ALL_ITEMS];
   };
 
-  // レベル計算：1:0-9, 2:10-19, 3:20-29, 4:30+
   function computeLevel(correctCount){
     if (correctCount >= 30) return 4;
     if (correctCount >= 20) return 3;
@@ -99,7 +94,6 @@ defineBlock('03.targets-levels', () => {
     return 1;
   }
 
-  // レベル反映（英語トースト表示）
   G.handleLevels = function(){
     const prev = G.level;
     G.level = computeLevel(G.correctCount);
@@ -115,20 +109,17 @@ defineBlock('03.targets-levels', () => {
     }
   };
 
-  // ★ ターゲット1件をプールから新規抽選（既存と重複させない）
   G.pickOneNewTarget = function(excludeEmojis = []){
     const pool = G.getPool().filter(x => !excludeEmojis.includes(x.e));
     if (pool.length === 0) return null;
     return pool[Math.floor(Math.random()*pool.length)];
   };
 
-  // n件のターゲットを抽選（重複なし）
   G.pickTargets = function(n){
     const pool = G.getPool();
     const picked = [];
     const used = new Set();
     for(let i=0;i<n;i++){
-      // 重複避けて選ぶ
       let safety = 200, item = null;
       while(safety-- > 0){
         const cand = pool[Math.floor(Math.random()*pool.length)];
@@ -138,14 +129,10 @@ defineBlock('03.targets-levels', () => {
     }
     G.currentTargets = picked;
     G.unresolvedTargets = [...picked];
-
-    // 初回表示
     if (G.unresolvedTargets[0]) G.lastShownWord = G.unresolvedTargets[0].w;
     G.renderTargets();
   };
 
-  // ★ 語彙バー：複数語彙を“個別ボックス”で表示
-  //   スタイルを1度だけ注入
   (function ensureTargetChipStyle(){
     if (document.getElementById('target-chip-style')) return;
     const st = document.createElement('style');
@@ -162,7 +149,6 @@ defineBlock('03.targets-levels', () => {
 
   G.renderTargets = function(){
     const host = G.targetWordEl;
-    // コンテナ作り替え
     const wrap = document.createElement('span');
     wrap.className = 'target-chips';
     const src = (G.unresolvedTargets.length > 0)
@@ -176,10 +162,10 @@ defineBlock('03.targets-levels', () => {
         wrap.appendChild(chip);
       });
       host.replaceChildren(wrap);
-      // lastShownWord には "A / B / C" をバックアップ文字列として残す
       G.lastShownWord = G.unresolvedTargets.map(t=>t.w).join(' / ');
+      // ★ 旗が含まれる可能性は低いが、数字など含め全体をpolyfill
+      if (G.emojiPolyfill) G.emojiPolyfill(host);
     } else {
-      // 未解決がない時は前回表示を維持
       host.textContent = G.lastShownWord || '—';
     }
   };
@@ -187,15 +173,13 @@ defineBlock('03.targets-levels', () => {
 
 /*** [04.spawn] 波の生成（2秒間隔の連続出現） **********************************/
 defineBlock('04.spawn', () => {
-  // チュートリアル：1,2,3問目は 1→2→3 個、それ以降は groupSize（Lv4で5）
   function currentGroupSize() {
-    if (G.questionIndex <= 3) return G.questionIndex; // 1,2,3
-    return G.groupSize; // 4（Lv4で5）
+    if (G.questionIndex <= 3) return G.questionIndex;
+    return G.groupSize;
   }
 
   G.spawnWave = function(targetItem, waveId){
     const n = Math.max(1, currentGroupSize());
-    // ★ ダミーは G.getPool() から選ぶ（Lv2以降の数字も反映）
     const pool = G.getPool();
     const dummies = sampleWithout(pool, Math.max(0, n - 1), targetItem.e);
     const items = [targetItem, ...dummies].sort(() => Math.random() - 0.5);
@@ -206,7 +190,6 @@ defineBlock('04.spawn', () => {
     items.forEach((item, i)=>{
       const col = cols[i % cols.length];
       const x = col*G.CELL + (G.CELL-G.EMOJI_SIZE)/2;
-      // 縦方向にランダムズレ + 少しのインデックスズレ
       const y = baseY - (4 + Math.floor(Math.random()*18)) - i*8;
 
       const el = document.createElement('div');
@@ -222,12 +205,14 @@ defineBlock('04.spawn', () => {
       G.stage.appendChild(el);
       G.emojis.push({ item, el, x, y, col, groupId: waveId });
     });
+
+    // ★ まとめてstage配下をpolyfill（div.emoji内の文字がimgに置換）
+    if (G.emojiPolyfill) G.emojiPolyfill(G.stage);
   };
 
   G.spawnWaveSequence = function(){
-    if (G.pendingWaveTimer !== null) return; // 二重起動ガード
-
-    const times = computeWaveTimes(G.unresolvedTargets.length); // 複数語彙=2秒、単一=即時
+    if (G.pendingWaveTimer !== null) return;
+    const times = computeWaveTimes(G.unresolvedTargets.length);
     G.pendingWaveTimer = setTimeout(()=>{
       G.pendingWaveTimer = null;
       G.unresolvedTargets.forEach((t, i)=>{
@@ -238,6 +223,7 @@ defineBlock('04.spawn', () => {
     }, 0);
   };
 });
+
 
 /*** [05.group-end] クリック/着底/クリア処理 ************************************/
 defineBlock('05.group-end', () => {
@@ -584,22 +570,50 @@ defineBlock('09.controls', () => {
 
 /*** [10.events-init] イベント & 初期化 ***************************************/
 defineBlock('10.events-init', () => {
-  // まずUIラベルを英語に差し替え（HTMLを触らずに英語化）
+  // === Twemoji loader & polyfill ===
+  G.twemojiReady = false;
+
+  function ensureTwemoji(cb){
+    if (window.twemoji){ G.twemojiReady = true; cb && cb(); return; }
+    // すでに読み込みタグがあるか？
+    if (document.getElementById('twemoji-script')){ 
+      const i = setInterval(()=>{ if(window.twemoji){ clearInterval(i); G.twemojiReady=true; cb&&cb(); }}, 60);
+      return;
+    }
+    const s = document.createElement('script');
+    s.id = 'twemoji-script';
+    s.src = 'https://twemoji.maxcdn.com/v/latest/twemoji.min.js';
+    s.crossOrigin = 'anonymous';
+    s.onload = () => { G.twemojiReady = true; cb && cb(); };
+    document.head.appendChild(s);
+
+    // 一度だけCSSを注入（旗画像サイズ調整）
+    if (!document.getElementById('twemoji-style')){
+      const st = document.createElement('style');
+      st.id = 'twemoji-style';
+      st.textContent = `
+        .emoji img{ width:100%; height:100%; display:block; }
+        .target-chips img{ height:1em; width:auto; vertical-align:-0.1em; }
+      `;
+      document.head.appendChild(st);
+    }
+  }
+
+  // 対象要素配下の絵文字を画像に置換（旗以外も安全に画像化）
+  G.emojiPolyfill = function(rootEl){
+    if (!G.twemojiReady || !window.twemoji || !rootEl) return;
+    window.twemoji.parse(rootEl, { folder: 'svg', ext: '.svg' });
+  };
+
+  // === UI英語化（既存ロジック） ===
   (function localizeToEnglish(){
     const byTextReplace = [
-      // 左下ターゲットラベル
       { sel: '.target-label', text: 'Current target(s): ' },
-
-      // ボタン
       { sel: '#startBtn', text: 'Start' },
       { sel: '#pauseBtn', text: 'Pause' },
       { sel: '#resetBtn', text: 'Reset' },
-
-      // 右パネルの見出しなど（存在する場合のみ）
-      // スコア小見出し
       { sel: '.side .panel .sub', index: 0, text: 'Score (+10 for correct + streak bonus)' },
     ];
-
     byTextReplace.forEach(({sel, text, index})=>{
       const nodes = document.querySelectorAll(sel);
       if (!nodes || nodes.length===0) return;
@@ -607,14 +621,11 @@ defineBlock('10.events-init', () => {
       if (el) el.textContent = text;
     });
 
-    // 「Mistakes」パネルの見出し
     const panels = document.querySelectorAll('.side .panel');
     if (panels[1]){
       const head = panels[1].querySelector('div[style*="font-weight"]');
       if (head) head.textContent = 'Mistakes';
     }
-
-    // 「How to Play」パネルの英語化（簡潔版）
     if (panels[2]){
       const head = panels[2].querySelector('div[style*="font-weight"]');
       if (head) head.textContent = 'How to Play';
@@ -629,7 +640,6 @@ defineBlock('10.events-init', () => {
       `;
     }
 
-    // バナー英語化（初期表示時点）
     const gc = document.getElementById('gcBanner');
     if (gc){
       const t = gc.querySelector('.b-title'); if (t) t.textContent = 'GAME CLEAR!';
@@ -651,9 +661,14 @@ defineBlock('10.events-init', () => {
   G.gcReset?.addEventListener('click', ()=>{ G.reset(); G.start(); });
   G.goReset?.addEventListener('click', ()=>{ G.reset(); G.start(); });
 
-  // 初期表示
-  G.reset();
+  // 初期表示：まずTwemojiをロード → reset() → 主要領域を画像化
+  ensureTwemoji(()=>{
+    G.reset();
+    G.emojiPolyfill(document.body);
+  });
 });
+
 
 /* === 全ブロック実行（ここは触らない） === */
 runBlocks();
+
